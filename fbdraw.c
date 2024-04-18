@@ -93,7 +93,7 @@ int main(int argc, char *argv[]) {
       vinfo.yres_virtual * vinfo.xres_virtual * vinfo.bits_per_pixel / 8;
   uint32_t *fbp = (uint32_t *)mmap(0, screensize, PROT_READ | PROT_WRITE,
                                    MAP_SHARED, fb_fd, 0);
-  if ((int)fbp == -1) {
+  if ((void *)fbp == MAP_FAILED) {
     perror("Failed to mmap framebuffer device to memory");
     close(fb_fd);
     return 1;
