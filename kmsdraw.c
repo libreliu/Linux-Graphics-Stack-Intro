@@ -9,7 +9,8 @@
 
 #define MAX_DRM_DEVICES 64
 
-static int find_drm_render_device(void)
+// drm_node_type: DRM_NODE_PRIMARY / DRM_NODE_RENDER
+static int find_drm_render_device(int drm_node_type)
 {
 	drmDevicePtr devices[MAX_DRM_DEVICES] = { NULL };
 	int num_devices, fd = -1;
@@ -20,12 +21,33 @@ static int find_drm_render_device(void)
 		return -1;
 	}
 
+  printf("The system have %d DRM device(s).\n", num_devices);
+
+  for (int i = 0; i < num_devices; i++) {
+    drmDevicePtr device = devices[i];
+    printf("Device %d: ", i);
+
+    if (device->available_nodes & (1 << DRM_NODE_PRIMARY)) {
+      printf("DRM_NODE_PRIMARY ");
+    }
+
+    // Should never happen; KMS control node was never implemented in practice
+    if (device->available_nodes & (1 << DRM_NODE_CONTROL)) {
+      printf("DRM_NODE_CONTROL ");
+    }
+
+    if (device->available_nodes & (1 << DRM_NODE_RENDER)) {
+      printf("DRM_NODE_RENDER ");
+    }
+    printf("\n");
+  }
+
 	for (int i = 0; i < num_devices && fd < 0; i++) {
 		drmDevicePtr device = devices[i];
 
-		if (!(device->available_nodes & (1 << DRM_NODE_RENDER)))
+		if (!(device->available_nodes & (1 << drm_node_type)))
 			continue;
-		fd = open(device->nodes[DRM_NODE_RENDER], O_RDWR);
+		fd = open(device->nodes[drm_node_type], O_RDWR);
 	}
 	drmFreeDevices(devices, num_devices);
 
@@ -36,7 +58,7 @@ static int find_drm_render_device(void)
 }
 
 int main() {
-    int fd = find_drm_render_device();
+    int fd = find_drm_render_device(DRM_NODE_PRIMARY);
     if (fd < 0) {
         fprintf(stderr, "Failed to open DRM device: %s\n", strerror(errno));
         return 1;
